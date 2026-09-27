@@ -1370,7 +1370,7 @@ document.querySelectorAll('.meter').forEach(function meter(box) {
       camera.setViewOffset(w, h, 0, 0, w, h + EXT);
       camera.updateProjectionMatrix();
       aspectK = Math.max(1, 0.86 / camera.aspect);
-      // Opening/closing views: the auto spans exactly 30% of the screen width (half the earlier 60%).
+      // Opening/closing views: the auto spans 60% of the screen width, capped at the main logo's width.
       // Measured by projecting the model's actual vertices in the opening pose, so perspective is accounted for.
       if (heroModel) {
         const screenW = document.documentElement.clientWidth;
@@ -1378,6 +1378,10 @@ document.querySelectorAll('.meter').forEach(function meter(box) {
         pivot.rotation.set(0, 0, 0); pivot.position.y = 0;
         yaw.rotation.y = S.ry; pitch.rotation.x = 0;
         off.position.set(-S.f[0], -S.f[1], -S.f[2]);
+        // 60% of the screen width, but never wider than the main logo
+        const logoEl = document.querySelector('.hero-details .logo');
+        const logoW = (logoEl && logoEl.offsetWidth) || 255;
+        const targetW = Math.min(0.6 * screenW, logoW);
         let K = heroK || 1;
         for (let it = 0; it < 5; it++) {
           camera.position.set(0, 0, S.d * K); camera.lookAt(0, 0, 0);
@@ -1393,13 +1397,15 @@ document.querySelectorAll('.meter').forEach(function meter(box) {
           });
           const px = (maxx - minx) / 2 * w;
           if (!isFinite(px) || px <= 0) break;
-          K *= px / (0.3 * screenW);   // opening and closing views: 30% of screen width
+          K *= px / targetW;
         }
         heroK = K;
       }
     }
     window.addEventListener('resize', resize);
     resize();
+    const lg = document.querySelector('.hero-details .logo');
+    if (lg && !lg.complete) lg.addEventListener('load', resize);
 
     let visible = true, t0 = performance.now();
     new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(sec);
